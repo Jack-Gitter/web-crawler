@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+
+import argparse, socket, ssl
+
+DEFAULT_SERVER = "proj5.3700.network"
+DEFAULT_PORT = 443
+
+class Crawler:
+    def __init__(self, args):
+        self.server = args.server
+        self.port = args.port
+        self.username = args.username
+        self.password = args.password
+
+    def run(self):
+        request = "GET / HTTP/1.0\r\n\r\n" 
+        # do i have to get the homepage before I can post to it? I don't think so, i think i can just post directly
+        print("Request to %s:%d" % (self.server, self.port))
+        print(request)
+        mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        mysocket.connect((self.server, self.port))
+        context = ssl.create_default_context()
+        wrappedSocket = context.wrap_socket(mysocket, server_hostname=self.server)
+        wrappedSocket.send(request.encode('ascii'))
+        
+        # make a receive loop that looks for \r\n
+        data = wrappedSocket.recv(1000)
+        print("Response:\n%s" % data.decode('ascii'))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='crawl Fakebook')
+    parser.add_argument('-s', dest="server", type=str, default=DEFAULT_SERVER, help="The server to crawl")
+    parser.add_argument('-p', dest="port", type=int, default=DEFAULT_PORT, help="The port to use")
+    parser.add_argument('username', type=str, help="The username to use")
+    parser.add_argument('password', type=str, help="The password to use")
+    args = parser.parse_args()
+    sender = Crawler(args)
+    sender.run()
