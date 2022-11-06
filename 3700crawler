@@ -61,30 +61,25 @@ class Crawler:
             return self.handle_302(data)
 
     def get_session_info(self):
-        request = "GET https://"+str(self.server)+":"+str(self.port)+"/accounts/login/?next=/fakebook/ HTTP/1.0 \r\n\r\n" 
-        print("request to %s:%d" % (self.server, self.port))
-        print(request)
-        self.wrapped_socket.send(request.encode('ascii'))
-        data = self.wrapped_socket.recv(10000)
-        data_string = data.decode('ascii')
-        self.get_status_code(data_string)
-        session_id_start = data_string.index('sessionid') + 10
-        session_id_end = data_string.index(';', session_id_start)
-        csrf_start = data_string.index('csrftoken') + 10
-        csrf_end = data_string.index(';', csrf_start)
-        self.csrf_token = data_string[csrf_start:csrf_end]
-        self.session_id = data_string[session_id_start:session_id_end]
+        request = "https://"+str(self.server)+":"+str(self.port)+"/accounts/login/?next=/fakebook/" 
+        data = self.send_get_request(request)
+        self.get_status_code(data)
+        session_id_start = data.index('sessionid') + 10
+        session_id_end = data.index(';', session_id_start)
+        csrf_start = data.index('csrftoken') + 10
+        csrf_end = data.index(';', csrf_start)
+        self.csrf_token = data[csrf_start:csrf_end]
+        self.session_id = data[session_id_start:session_id_end]
         print("session id is: " + str(self.session_id))
         print("csrf token is: " + str(self.csrf_token))
-        print("Response:\n%s" % data.decode('ascii'))
+        print("Response:\n%s" % data)
 
 
     def login(self):
+
         self.get_session_info()
 
-        self.mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.mysocket.connect((self.server, self.port))
-        self.wrapped_socket = self.context.wrap_socket(self.mysocket, server_hostname=self.server)
+        self.reset_connection()
 
         post_request = 'POST https://'+str(self.server)+':'+str(self.port)+'/accounts/login/?next=/fakebook/ HTTP/1.0 '
         post_request += 'cookie:'+str(self.csrf_token)+'; sessionid='+str(self.session_id)+' '
@@ -105,17 +100,11 @@ class Crawler:
         
         return 0
 
-
     def run(self):
-        #self.login()
-        request = 'https://'+str(self.server)+':'+str(self.port)+"/fakebook/"
-        data = self.send_get_request(request)
-        #print("request to %s:%d" % (self.server, self.port))
-        #print(request)
-        #self.wrapped_socket.send(request.encode('ascii'))
-        #data = self.wrapped_socket.recv(10000)
-        #data_string = data.decode('ascii')
-        print("Response:\n%s" % data)
+        self.login()
+        #request = 'https://'+str(self.server)+':'+str(self.port)+"/fakebook/"
+        #data = self.send_get_request(request)
+        #print("Response:\n%s" % data)
 
 
 
