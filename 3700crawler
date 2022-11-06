@@ -36,10 +36,6 @@ class Crawler:
         print(len(extracted_url))
         return new_url
 
-    def handle_302(self, data):
-        new_url = self.get_redirect_url(data)
-        return self.send_get_request(new_url)
-
     def get_status_code(self, data):
         return data[:data.index('\n')]
 
@@ -58,7 +54,8 @@ class Crawler:
             print("we made it")
             return data
         elif 'HTTP/1.1 302 Found' in status_code:
-            return self.handle_302(data)
+            new_url = self.get_redirect_url(data)
+            return self.send_get_request(new_url)
 
     def get_session_info(self):
         request = "https://"+str(self.server)+":"+str(self.port)+"/accounts/login/?next=/fakebook/" 
@@ -82,12 +79,10 @@ class Crawler:
         self.reset_connection()
 
         post_request = 'POST https://'+str(self.server)+':'+str(self.port)+'/accounts/login/?next=/fakebook/ HTTP/1.0 '
-        post_request += 'cookie:'+str(self.csrf_token)+'; sessionid='+str(self.session_id)+' '
-        post_request += 'cookie:'+str(self.csrf_token)
+        post_request += 'cookie:csrftoken='+str(self.csrf_token)+'; sessionid='+str(self.session_id)+' '
         post_request += 'content-type:application/x-www-form-url-encoded '
         post_request += 'content-length:20 '
         post_request += '\r\n\r\n'
-        #post_request += 'username='+str(self.username)+'&password='+str(self.password)
         post_request += 'username='+str(self.username)+'&password='+str(self.password)+'&csrfmiddlewaretoken='+str(self.csrf_token)
 
         print("post request to %s:%d" % (self.server, self.port))
