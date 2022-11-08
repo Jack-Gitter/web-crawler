@@ -91,13 +91,13 @@ class Crawler:
 
         self.get_session_info()
 
-        #self.reset_connection()
+        self.reset_connection()
 
         body = 'username='+str(self.username)+'&password='+str(self.password)+'&csrfmiddlewaretoken='+str(self.csrf_token_body)+'&next=%2Ffakebook%2F'
 
         #post_request = 'POST /accounts/login/ HTTP/1.0\r\n' 
-        post_request = 'POST https://'+str(self.server)+':'+str(self.port)+'/accounts/login/?next=/fakebook/ HTTP/1.0\r\n' 
-        #post_request += 'Host: proj5.3700.network\r\n'
+        post_request = 'POST /accounts/login/?next=/fakebook/ HTTP/1.0\r\n' 
+        post_request += 'Host: '+str(self.server)+'\r\n'
         #post_request += 'Cookie: csrftoken='+str(self.csrf_token_body)+'\r\n'
         post_request += 'Cookie: csrftoken='+str(self.csrf_token_header)+'; sessionid='+str(self.session_id)+'\r\n'
         post_request += 'Content-type: application/x-www-form-url-encoded\r\n'
