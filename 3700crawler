@@ -28,14 +28,10 @@ class Crawler:
         self.wrapped_socket = self.context.wrap_socket(self.mysocket, server_hostname=self.server)
 
     def get_redirect_url(self, data):
-        print(data)
         extracted_url_start = data.index('Location:') + 10
         extracted_url_end = data.index('\r\n', extracted_url_start)
         extracted_url = data[extracted_url_start:extracted_url_end]
-        print("extracted url is : " + extracted_url)
         new_url = extracted_url
-        print("new url is : " + new_url)
-        print(len(extracted_url))
         return new_url
 
     def get_status_code(self, data):
@@ -45,6 +41,10 @@ class Crawler:
         self.reset_connection()
         request = 'GET ' + url + ' HTTP/1.0\r\n'
         request += 'Host: '+str(self.server)+'\r\n'
+
+        if (self.csrf_token_header != '' and self.session_id != ''):
+            request+= 'Cookie: csrftoken='+str(self.csrf_token_header)+'; sessionid='+(self.session_id)+'\r\n'
+
         request += '\r\n'
 
         print("Request to %s:%d" % (self.server, self.port))
@@ -59,6 +59,34 @@ class Crawler:
         elif 'HTTP/1.1 302 Found' in status_code:
             new_url = self.get_redirect_url(data)
             return self.send_get_request(new_url)
+    
+    def send_post_request(self, url):
+        self.reset_connection()
+        body = 'username='+str(self.username)+'&password='+str(self.password)+'&csrfmiddlewaretoken='+str(self.csrf_token_body)+'&next=%2Ffakebook%2F'
+        post_request = 'POST '+str(url)+ ' HTTP/1.0\r\n' 
+        post_request += 'Host: '+str(self.server)+'\r\n'
+        post_request += 'Cookie: csrftoken='+str(self.csrf_token_header)+'; sessionid='+str(self.session_id)+'\r\n'
+        post_request += 'Content-type: application/x-www-form-urlencoded\r\n'
+        post_request += 'Content-length: '+str(len(body))+'\r\n'
+        post_request += '\r\n'
+        post_request += body
+
+        print("post request to %s:%d" % (self.server, self.port))
+        print(post_request)
+
+        self.wrapped_socket.send(post_request.encode('ascii'))
+        data = self.wrapped_socket.recv(1000).decode('ascii')
+
+        status_code = self.get_status_code(data)
+        print("RESPONSE:\n" + str(data))
+
+        if 'HTTP/1.1 200 OK' in status_code:
+            return data
+        elif 'HTTP/1.1 302 Found' in status_code:
+            new_url = self.get_redirect_url(data)
+            self.update_cookies(data)
+            return self.send_get_request(new_url)
+          
 
     def get_session_info(self):
         request_url = "/accounts/login/?next=/fakebook/" 
@@ -85,30 +113,61 @@ class Crawler:
         print("Response:\n%s" % data)
 
 
+    def send_initial_get(self):
+        request_url = "/accounts/login/?next=/fakebook/" 
+        data = self.send_get_request(request_url)
+        return data;
+
+    def update_cookies(self, response):
+        session_id_start = response.index('sessionid') + 10
+        session_id_end = response.index(';', session_id_start)
+
+        csrf_start = response.index('csrftoken') + 10
+        csrf_end = response.index(';', csrf_start)
+        self.csrf_token_header = response[csrf_start:csrf_end]
+
+        self.session_id = response[session_id_start:session_id_end]
+
+    def update_csrfmiddlewaretoken(self, response):
+        csrf_start = response.index('name=\"csrfmiddlewaretoken\"')+34
+        csrf_end = response.index('>', csrf_start)-1
+        self.csrf_token_body = response[csrf_start:csrf_end]
+
     def login(self):
 
-        self.get_session_info()
+        #self.get_session_info()
+        response = self.send_initial_get()
+        print("RESPONSE: "+str(response))
+        self.update_csrfmiddlewaretoken(response)
+        self.update_cookies(response)
+        print("csrf header value is " + str(self.csrf_token_header))
+        print("csrf body value is " + str(self.csrf_token_body))
+        print("sessionid value is " + str(self.session_id))
+        response = self.send_post_request('/accounts/login/?next=/fakebook/')
+        print("RESPONSE: "+str(response))
+        #data = self.send_post_request('/accounts/login/?next=/fakebook/')
+        #print("Response from post:\n%s" % data)
 
-        self.reset_connection()
+        
 
-        body = 'username='+str(self.username)+'&password='+str(self.password)+'&csrfmiddlewaretoken='+str(self.csrf_token_body)+'&next=%2Ffakebook%2F'
+        #body = 'username='+str(self.username)+'&password='+str(self.password)+'&csrfmiddlewaretoken='+str(self.csrf_token_body)+'&next=%2Ffakebook%2F'
 
-        post_request = 'POST /accounts/login/?next=/fakebook/ HTTP/1.0\r\n' 
-        post_request += 'Host: '+str(self.server)+'\r\n'
-        post_request += 'Cookie: csrftoken='+str(self.csrf_token_header)+'; sessionid='+str(self.session_id)+'\r\n'
-        post_request += 'Content-type: application/x-www-form-urlencoded\r\n'
-        post_request += 'Content-length: '+str(len(body))+'\r\n'
+       # post_request = 'POST /accounts/login/?next=/fakebook/ HTTP/1.0\r\n' 
+       # post_request += 'Host: '+str(self.server)+'\r\n'
+       # post_request += 'Cookie: csrftoken='+str(self.csrf_token_header)+'; sessionid='+str(self.session_id)+'\r\n'
+       # post_request += 'Content-type: application/x-www-form-urlencoded\r\n'
+       # post_request += 'Content-length: '+str(len(body))+'\r\n'
 
-        post_request += '\r\n'
+       # post_request += '\r\n'
 
-        post_request += body
+       # post_request += body
 
-        print("post request to %s:%d" % (self.server, self.port))
-        print(post_request)
+       # print("post request to %s:%d" % (self.server, self.port))
+       # print(post_request)
 
-        self.wrapped_socket.send(post_request.encode('ascii'))
-        data = self.wrapped_socket.recv(1000).decode('ascii')
-        print("Response from post:\n%s" % data)
+       # self.wrapped_socket.send(post_request.encode('ascii'))
+       # data = self.wrapped_socket.recv(1000).decode('ascii')
+       # print("Response from post:\n%s" % data)
 
         
         return 0
