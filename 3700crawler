@@ -51,15 +51,12 @@ class Crawler:
         self.csrf_token_header = ''
         self.csrf_token_body = ''
         self.post_request = ''
-        self.mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.mysocket.connect((self.server, self.port))
+        self.mysocket = ''
         self.context = ssl.create_default_context()
-        self.wrapped_socket = self.context.wrap_socket(self.mysocket, server_hostname=self.server)
         self.visited_pages = set()
         self.frontier = set()
         self.flags = set()
         self.html_parser = MyHTMLParser(self.server, self.port, self.flags)
-        self.crawled_pages = 0
 
     def reset_connection(self):
         self.mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -100,8 +97,6 @@ class Crawler:
 
         status_code = self.get_status_code(data)
         self.update_cookies(data)
-        self.visited_pages.add(url)
-        self.crawled_pages +=1
 
         if '200' in status_code:
             return data
@@ -144,8 +139,6 @@ class Crawler:
         status_code = self.get_status_code(data)
         self.update_cookies(data)
 
-        self.visited_pages.add(url)
-
         if '200' in status_code:
             return data
         elif '302' in status_code:
@@ -180,7 +173,7 @@ class Crawler:
         return post_response
 
     def get_html(self,response):
-        body_idx = response.index('DOCTYPE')
+        body_idx = response.index('<!DOCTYPE')
         return response[body_idx:]
         
     def explore(self):
