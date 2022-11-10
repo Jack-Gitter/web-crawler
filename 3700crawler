@@ -59,8 +59,8 @@ class Crawler:
         self.mysocket.connect((self.server, self.port))
         self.context = ssl.create_default_context()
         self.wrapped_socket = self.context.wrap_socket(self.mysocket, server_hostname=self.server)
-        self.visited_pages = []
-        self.frontier = []
+        self.visited_pages = set()
+        self.frontier = set()
         self.html_parser = MyHTMLParser(self.server, self.port)
         self.flag_parser = FLAGPARSER()
 
@@ -107,8 +107,8 @@ class Crawler:
         if '200' in status_code:
             return data
         elif '302' in status_code:
-            new_url = self.get_redirect_url(data) # we are not adding the new_url to the visited_pages list
-            self.visited_pages.append(new_url)
+            new_url = self.get_redirect_url(data) 
+            self.visited_pages.add(new_url)
             return self.send_get_request(new_url)
         elif '503' in status_code:
             return self.send_get_request(url)
@@ -147,7 +147,7 @@ class Crawler:
             return data
         elif '302' in status_code:
             new_url = self.get_redirect_url(data)
-            self.visited_pages.append(new_url)
+            self.visited_pages.add(new_url)
             return self.send_get_request(new_url)
         elif '503' in status_code:
             return self.send_post_request(url)
@@ -188,22 +188,17 @@ class Crawler:
         while (len(self.frontier) != 0):
             #print('frontier size is ' + str(len(self.frontier)))
             #self.visited_pages.append(self.frontier[0])
-            response = self.send_get_request(self.frontier[0])
+            response = self.send_get_request(self.frontier.pop())
             html = self.get_html(response)
             self.scan_page(html)
             self.add_links_to_frontier(html)
-            self.frontier.pop(0)
 
     def add_links_to_frontier(self, html):
         self.html_parser.feed(html)
         for link in self.html_parser.page_links:
             if link not in self.visited_pages:
-                self.frontier.append(link)
-                self.visited_pages.append(link)
-            #else:
-                #print('avoided revisiting a page')
-        #print(self.frontier)
-        #print(self.visited_pages)
+                self.frontier.add(link)
+                self.visited_pages.add(link)
         self.html_parser.page_links = []
 
     def run(self):
