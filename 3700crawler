@@ -31,11 +31,21 @@ class MyHTMLParser(html.parser.HTMLParser):
 class FLAGPARSER(html.parser.HTMLParser):
     def __init__(self):
         html.parser.HTMLParser.__init__(self)
+        self.get_flag = False
         
     def handle_starttag(self, tag, attrs):
         for attr in attrs:
             if attr[0] == 'class' and attr[1] == 'secret_flag':
+                self.get_flag = True
                 print(attr)
+
+    def handle_endtag(self, tag):
+        self.get_flag = False
+
+    def handle_data(self, data):
+        if self.get_flag:
+            print("we have found a flag!\n")
+            print(data)
 
 class Crawler:
     def __init__(self, args):
@@ -70,17 +80,6 @@ class Crawler:
 
     def get_status_code(self, data):
         return data[:data.index('\r\n')]
-
-    #def test_loop(self): 
-    #    self.reset_connection()
-    #    request = 'GET /accounts/login/?next=/fakebook/ HTTP/1.0\r\n'
-    #    request += 'Host: '+str(self.server)+'\r\n'
-     #   request += '\r\n'
-     #   self.wrapped_socket.send(request.encode('ascii'))
-    #  data = self.wrapped_socket.recv(5000).decode('ascii')
-    #    print(data)
-    #    status_code = self.get_status_code(data)
-    #    self.update_cookies(data)
 
     def send_get_request(self, url):
 
@@ -190,7 +189,7 @@ class Crawler:
     def explore(self):
         while (len(self.frontier) != 0):
             #print('frontier size is ' + str(len(self.frontier)))
-            self.visited_pages.append(self.frontier[0])
+            #self.visited_pages.append(self.frontier[0])
             response = self.send_get_request(self.frontier[0])
             html = self.get_html(response)
             self.scan_page(html)
@@ -202,8 +201,11 @@ class Crawler:
         for link in self.html_parser.page_links:
             if link not in self.visited_pages:
                 self.frontier.append(link)
+                self.visited_pages.append(link)
             #else:
                 #print('avoided revisiting a page')
+        #print(self.frontier)
+        #print(self.visited_pages)
         self.html_parser.page_links = []
 
     def run(self):
