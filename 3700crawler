@@ -97,7 +97,7 @@ class Crawler:
 
         self.wrapped_socket.send(request.encode('ascii'))
         data = self.wrapped_socket.recv(5000).decode('ascii')
-        #print(data)
+        print(data)
 
         status_code = self.get_status_code(data)
         self.update_cookies(data)
@@ -111,6 +111,17 @@ class Crawler:
         #elif '503' in status_code:
         #    return self.send_get_request(url)
     
+    def test(self):
+        self.reset_connection()
+        request = 'GET /accounts/login/?next=/fakebook/ HTTP/1.0\r\n'
+        request += 'Host: proj5.3700.network\r\n'
+        request += '\r\n'
+        self.wrapped_socket.send(request.encode('ascii'))
+        print(request)
+        data = self.wrapped_socket.recv(5000).decode('ascii')
+        print(data)
+        data.index('DOCTYPE')
+
     def send_post_request(self, url):
 
         self.reset_connection()
@@ -162,14 +173,10 @@ class Crawler:
 
     def login(self):
         response = self.send_get_request('/accounts/login/?next=/fakebook/')
-        print(response)
         #self.update_csrfmiddlewaretoken(response)
         #self.update_cookies(response)
         #post_response = self.send_post_request('/accounts/login/?next=/fakebook/')
         #return post_response
-
-    def get_all_friends(self):
-        return 0
 
     def get_html(self,response):
         body_idx = response.index('DOCTYPE')
@@ -182,10 +189,9 @@ class Crawler:
         while (len(self.frontier) != 0):
             response = self.send_get_request(self.frontier[0])
             html = self.get_html(response)
-            self.scan_page(html)
+            #self.scan_page(html)
+            #self.add_links_to_frontier(html)
             #self.visited_pages.append(self.frontier[0])
-            #self.get_all_friends(self.frontier[0])
-            #self.add_profiles_to_frontier()
             self.frontier.pop(0)
 
     def add_links_to_frontier(self, html):
@@ -198,7 +204,14 @@ class Crawler:
 
 
     def run(self):
-        response = self.login()
+        #for i in range(100):
+        #    response = self.send_get_request('/accounts/login/?next=/fakebook/')
+        #    self.get_html(response)
+        for i in range(200):
+            self.test()
+
+
+        #response = self.login()
         #html = self.get_html(response)
         #self.add_links_to_frontier(html)
         #self.explore()
