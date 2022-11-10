@@ -19,8 +19,8 @@ class MyHTMLParser(html.parser.HTMLParser):
             if attr[0] == 'href':
                 if self.is_valid_link(attr[1]):
                     self.page_links.append(attr[1])
-	    elif attr[0] == 'class' and attr[1] == 'secret_flag':
-	        self.get_flag = True
+            elif attr[0] == 'class' and attr[1] == 'secret_flag':
+	            self.get_flag = True
 				
     def handle_endtag(self, tag):
         self.get_flag = False
@@ -57,8 +57,8 @@ class Crawler:
         self.wrapped_socket = self.context.wrap_socket(self.mysocket, server_hostname=self.server)
         self.visited_pages = set()
         self.frontier = set()
-        self.html_parser = MyHTMLParser(self.server, self.port, self.flags)
         self.flags = set()
+        self.html_parser = MyHTMLParser(self.server, self.port, self.flags)
         self.crawled_pages = 0
 
     def reset_connection(self):
@@ -202,7 +202,7 @@ class Crawler:
     def run(self):
         response = self.login()
         html = self.get_html(response)
-        self.add_links_to_frontier(html)
+        self.add_links_and_scan(html)
         self.explore()
 
 if __name__ == "__main__":
