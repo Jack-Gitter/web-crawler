@@ -15,12 +15,15 @@ class MyHTMLParser(html.parser.HTMLParser):
         self.flags = flags
         
     def handle_starttag(self, tag, attrs):
-        for attr in attrs:
-            if attr[0] == 'href':
-                if self.is_valid_link(attr[1]):
-                    self.page_links.append(attr[1])
-            elif attr[0] == 'class' and attr[1] == 'secret_flag':
-	            self.get_flag = True
+        if tag == 'a':
+            for attr in attrs:
+                if attr[0] == 'href':
+                    if self.is_valid_link(attr[1]):
+                        self.page_links.append(attr[1])
+        elif tag == 'h2':
+            for attr in attrs:
+                if attr[0] == 'class' and attr[1] == 'secret_flag':
+                    self.get_flag = True
 				
     def handle_endtag(self, tag):
         self.get_flag = False
@@ -57,6 +60,7 @@ class Crawler:
         self.frontier = set()
         self.flags = set()
         self.html_parser = MyHTMLParser(self.server, self.port, self.flags)
+        self.count = 0
 
     def reset_connection(self):
         self.mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -186,6 +190,7 @@ class Crawler:
 
     def add_links_and_scan(self, html):
         self.html_parser.feed(html)
+        #print(len(self.html_parser.page_links))
         for link in self.html_parser.page_links:
             if link not in self.visited_pages:
                 self.frontier.add(link)
