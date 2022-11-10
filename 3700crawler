@@ -195,6 +195,7 @@ class Crawler:
             self.scan_page(html)
             self.add_links_to_frontier(html)
             self.frontier.pop(0)
+            print('frontier len: '+str(len(self.frontier)))
 
     def add_links_to_frontier(self, html):
         self.html_parser.feed(html)
