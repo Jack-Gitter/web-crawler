@@ -6,17 +6,29 @@ DEFAULT_SERVER = "proj5.3700.network"
 DEFAULT_PORT = 443
 
 class MyHTMLParser(html.parser.HTMLParser):
-    def __init__(self, server, port):
+    def __init__(self, server, port, flags):
         html.parser.HTMLParser.__init__(self)
         self.page_links = []
         self.server = server
         self.port = port
+        self.get_flag = False
+        self.flags = flags
         
     def handle_starttag(self, tag, attrs):
         for attr in attrs:
             if attr[0] == 'href':
                 if self.is_valid_link(attr[1]):
                     self.page_links.append(attr[1])
+	    elif attr[0] == 'class' and attr[1] == 'secret_flag':
+	        self.get_flag = True
+				
+    def handle_endtag(self, tag):
+        self.get_flag = False
+
+    def handle_data(self, data):
+        if self.get_flag:
+            self.flags.add(data[6:])
+            print(data[6:])
 
     def is_valid_link(self, link):
         o = urllib.parse.urlparse(link)
@@ -28,24 +40,6 @@ class MyHTMLParser(html.parser.HTMLParser):
         else:
             return False
 
-class FLAGPARSER(html.parser.HTMLParser):
-    def __init__(self, flags):
-        html.parser.HTMLParser.__init__(self)
-        self.get_flag = False
-        self.flags = flags
-        
-    def handle_starttag(self, tag, attrs):
-        for attr in attrs:
-            if attr[0] == 'class' and attr[1] == 'secret_flag':
-                self.get_flag = True
-
-    def handle_endtag(self, tag):
-        self.get_flag = False
-
-    def handle_data(self, data):
-        if self.get_flag:
-            self.flags.add(data[6:])
-            print(data[6:])
 
 class Crawler:
     def __init__(self, args):
@@ -63,9 +57,8 @@ class Crawler:
         self.wrapped_socket = self.context.wrap_socket(self.mysocket, server_hostname=self.server)
         self.visited_pages = set()
         self.frontier = set()
-        self.html_parser = MyHTMLParser(self.server, self.port)
+        self.html_parser = MyHTMLParser(self.server, self.port, self.flags)
         self.flags = set()
-        self.flag_parser = FLAGPARSER(self.flags)
         self.crawled_pages = 0
 
     def reset_connection(self):
@@ -114,7 +107,6 @@ class Crawler:
             return data
         elif '302' in status_code:
             html = self.get_html(data)
-            self.scan_page(html)
             new_url = self.get_redirect_url(data) 
             self.visited_pages.add(new_url)
             return self.send_get_request(new_url)
@@ -191,20 +183,15 @@ class Crawler:
         body_idx = response.index('DOCTYPE')
         return response[body_idx:]
         
-    def scan_page(self, html):
-        self.flag_parser.feed(html)
-
     def explore(self):
         while (len(self.frontier) != 0):
             response = self.send_get_request(self.frontier.pop())
             html = self.get_html(response)
-            self.scan_page(html)
-            self.add_links_to_frontier(html)
-            #print(self.crawled_pages)
+            self.add_links_and_scan(html)
             if (len(self.flags) == 5):
                 return
 
-    def add_links_to_frontier(self, html):
+    def add_links_and_scan(self, html):
         self.html_parser.feed(html)
         for link in self.html_parser.page_links:
             if link not in self.visited_pages:
