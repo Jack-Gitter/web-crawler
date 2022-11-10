@@ -66,6 +66,7 @@ class Crawler:
         self.html_parser = MyHTMLParser(self.server, self.port)
         self.flags = set()
         self.flag_parser = FLAGPARSER(self.flags)
+        self.crawled_pages = 0
 
     def reset_connection(self):
         self.mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -101,22 +102,25 @@ class Crawler:
         temp = 'temp'
 
         while (len(temp) != 0):
-            temp = self.wrapped_socket.recv(1000).decode('ascii')
+            temp = self.wrapped_socket.recv(10000).decode('ascii')
             data += temp
 
         status_code = self.get_status_code(data)
         self.update_cookies(data)
+        self.visited_pages.add(url)
+        self.crawled_pages +=1
 
         if '200' in status_code:
             return data
         elif '302' in status_code:
+            html = self.get_html(data)
+            self.scan_page(html)
             new_url = self.get_redirect_url(data) 
             self.visited_pages.add(new_url)
             return self.send_get_request(new_url)
         elif '503' in status_code:
             return self.send_get_request(url)
         elif '403' in status_code or '404' in status_code:
-            print(data)
             return data
     
 
@@ -139,7 +143,7 @@ class Crawler:
         temp = 'temp'
 
         while (len(temp) != 0):
-            temp = self.wrapped_socket.recv(1000).decode('ascii')
+            temp = self.wrapped_socket.recv(10000).decode('ascii')
             data += temp
 
         status_code = self.get_status_code(data)
@@ -147,6 +151,8 @@ class Crawler:
 
         status_code = self.get_status_code(data)
         self.update_cookies(data)
+
+        self.visited_pages.add(url)
 
         if '200' in status_code:
             return data
@@ -194,6 +200,7 @@ class Crawler:
             html = self.get_html(response)
             self.scan_page(html)
             self.add_links_to_frontier(html)
+            print(self.crawled_pages)
             if (len(self.flags) == 5):
                 return
 
