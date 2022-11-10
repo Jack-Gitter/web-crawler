@@ -140,7 +140,7 @@ class Crawler:
         elif '503' in status_code:
             return self.send_get_request(url)
         elif '403' in status_code or '404' in status_code:
-            return data
+            return -1
     
 
     # Send a post request with a given URL
@@ -222,6 +222,8 @@ class Crawler:
     def explore(self):
         while (len(self.frontier) != 0):
             response = self.send_get_request(self.frontier.pop())
+            if (response == -1):
+                continue
             html = self.get_html(response)
             self.add_links_and_scan(html)
             if (len(self.flags) == 5):
