@@ -86,23 +86,23 @@ class Crawler:
 
         self.reset_connection()
 
-        request = 'GET ' + url + ' HTTP/1.0\r\n'
+        request = 'GET ' + url + ' HTTP/1.1\r\n'
         request += 'Host: '+str(self.server)+'\r\n'
+        request += 'Connection: close\r\n'
 
         if (self.csrf_token_header != '' and self.session_id != ''):
             request+= 'Cookie: csrftoken='+str(self.csrf_token_header)+'; sessionid='+(self.session_id)+'\r\n'
 
         request += '\r\n'
 
-        #print("Request to %s:%d" % (self.server, self.port))
-        #print(request)
-
         self.wrapped_socket.send(request.encode('ascii'))
-        data = self.wrapped_socket.recv(5000).decode('ascii')
-        data += self.wrapped_socket.recv(5000).decode('ascii')
-        data += self.wrapped_socket.recv(5000).decode('ascii')
-        #print("RESPONSE:\n")
-        #print(data)
+
+        data = ''
+        temp = 'temp'
+
+        while (len(temp) != 0):
+            temp = self.wrapped_socket.recv(1000).decode('ascii')
+            data += temp
 
         status_code = self.get_status_code(data)
         self.update_cookies(data)
@@ -125,23 +125,25 @@ class Crawler:
         self.reset_connection()
 
         body = 'username='+str(self.username)+'&password='+str(self.password)+'&csrfmiddlewaretoken='+str(self.csrf_token_body)+'&next=%2Ffakebook%2F'
-        post_request = 'POST '+str(url)+ ' HTTP/1.0\r\n' 
+        post_request = 'POST '+str(url)+ ' HTTP/1.1\r\n' 
         post_request += 'Host: '+str(self.server)+'\r\n'
         post_request += 'Cookie: csrftoken='+str(self.csrf_token_header)+'; sessionid='+str(self.session_id)+'\r\n'
         post_request += 'Content-type: application/x-www-form-urlencoded\r\n'
         post_request += 'Content-length: '+str(len(body))+'\r\n'
+        post_request += 'Connection: close\r\n'
         post_request += '\r\n'
         post_request += body
 
-        #print("post request to %s:%d" % (self.server, self.port))
-        #print(post_request)
-
         self.wrapped_socket.send(post_request.encode('ascii'))
-        data = self.wrapped_socket.recv(5000).decode('ascii')
-        data += self.wrapped_socket.recv(5000).decode('ascii')
-        data += self.wrapped_socket.recv(5000).decode('ascii')
+        data = ''
+        temp = 'temp'
 
-        #print("RESPONSE:\n" + str(data))
+        while (len(temp) != 0):
+            temp = self.wrapped_socket.recv(1000).decode('ascii')
+            data += temp
+
+        status_code = self.get_status_code(data)
+        self.update_cookies(data)
 
         status_code = self.get_status_code(data)
         self.update_cookies(data)
@@ -188,8 +190,6 @@ class Crawler:
 
     def explore(self):
         while (len(self.frontier) != 0):
-            #print('frontier size is ' + str(len(self.frontier)))
-            #self.visited_pages.append(self.frontier[0])
             response = self.send_get_request(self.frontier.pop())
             html = self.get_html(response)
             self.scan_page(html)
