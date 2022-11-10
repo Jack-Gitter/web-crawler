@@ -37,15 +37,13 @@ class FLAGPARSER(html.parser.HTMLParser):
         for attr in attrs:
             if attr[0] == 'class' and attr[1] == 'secret_flag':
                 self.get_flag = True
-                print(attr)
 
     def handle_endtag(self, tag):
         self.get_flag = False
 
     def handle_data(self, data):
         if self.get_flag:
-            print("we have found a flag!\n")
-            print(data)
+            print(data[6:])
 
 class Crawler:
     def __init__(self, args):
@@ -195,7 +193,6 @@ class Crawler:
             self.scan_page(html)
             self.add_links_to_frontier(html)
             self.frontier.pop(0)
-            print('frontier len: '+str(len(self.frontier)))
 
     def add_links_to_frontier(self, html):
         self.html_parser.feed(html)
