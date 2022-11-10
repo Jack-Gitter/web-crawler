@@ -200,7 +200,7 @@ class Crawler:
             html = self.get_html(response)
             self.scan_page(html)
             self.add_links_to_frontier(html)
-            print(self.crawled_pages)
+            #print(self.crawled_pages)
             if (len(self.flags) == 5):
                 return
 
