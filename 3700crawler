@@ -78,8 +78,6 @@ class Crawler:
         # HTML parser
         self.html_parser = MyHTMLParser(self.server, self.port, self.flags)
 
-        self.compressor = zlib.compressobj(-1, zlib.DEFLATED, 31)
-
     # Resets the connection after each message received by the server
     def reset_connection(self):
         self.mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
