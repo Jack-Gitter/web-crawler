@@ -77,8 +77,6 @@ class Crawler:
         self.mysocket.connect((self.server, self.port))
         self.wrapped_socket = self.context.wrap_socket(self.mysocket, server_hostname=self.server)
 
-        self.count = 0
-
         # HTML parser
         self.html_parser = MyHTMLParser(self.server, self.port, self.flags)
 
@@ -135,9 +133,6 @@ class Crawler:
 
     # Sends a get request with a given URL
     def send_get_request(self, url):
-
-        self.count+=1
-        print(self.count)
 
         # Build get request
         request = 'GET ' + url + ' HTTP/1.1\r\n'
