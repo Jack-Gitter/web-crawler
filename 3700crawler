@@ -80,6 +80,9 @@ class Crawler:
         # HTML parser
         self.html_parser = MyHTMLParser(self.server, self.port, self.flags)
 
+        # Variable used to reset connection every 100 requests (as advised on piazza) 
+        self.count = 0
+
     # Resets the connection after each message received by the server
     def reset_connection(self):
         self.mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -99,46 +102,51 @@ class Crawler:
         return data[:data.index('\r\n')]
 
     def parse_keep_alive_response(self):
-        # initialize variables
+        # Initialize variables
         data_head = ''
         data_body = ''
         content_length = 0
         temp = 'temp'
 
-        # loop to isolate header 
+        # Loop to isolate header 
         while (data_head[len(data_head)-4:] != '\r\n\r\n'):
             temp = self.wrapped_socket.recv(1)
             temp = temp.decode('ascii')
             data_head += temp
             
-        # parse header, figure out how long body is
+        # Parse header, figure out how long body is
         len_idx = data_head.index("Content-Length:")+16
         len_end_idx = data_head.index('\r', len_idx)
         content_length = data_head[len_idx:len_end_idx]
 
-        # read the body of the message
+        # Read the body of the message
         while len(data_body) < int(content_length):
             temp = self.wrapped_socket.recv(1000).decode('ascii')
             data_body += temp
 
-        # check if we need to reset the connection
+        # Check if we need to reset the connection
         try:
             data_head.index("Connection: keep-alive")
         except:
             self.reset_connection()
 
-        # return the header and body to the get method
+        # Return the header and body to the get method
         return [data_head, data_body]
 
 
     # Sends a get request with a given URL
     def send_get_request(self, url):
 
+        # Reset connection once in a while to avoid weirdness
+        if (self.count % 100 == 0):
+            self.reset_connection()
+
+        self.count+=1
+
         # Build get request
         request = 'GET ' + url + ' HTTP/1.1\r\n'
         request += 'Host: '+str(self.server)+'\r\n'
         request += 'Connection: keep-alive\r\n'
-        #request += 'Content-Encoding: gzip\r\n'
 
         # Add cookies to request if we have set them
         if (self.csrf_token_header != '' and self.session_id != ''):
