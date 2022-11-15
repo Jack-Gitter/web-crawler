@@ -101,12 +101,42 @@ class Crawler:
         return data[:data.index('\r\n')]
 
     def parse_keep_alive_response(self):
+        # initialize variables
+        data_head = ''
+        data_body = ''
+        content_length = 0
+        temp = 'temp'
+
+        # loop to isolate header 
+        while (data_head[len(data_head)-4:] != '\r\n\r\n'):
+            temp = self.wrapped_socket.recv(1)
+            temp = temp.decode('ascii')
+            data_head += temp
+            
+        # parse header, figure out how long body is
+        len_idx = data_head.index("Content-Length:")+16
+        len_end_idx = data_head.index('\r', len_idx)
+        content_length = data_head[len_idx:len_end_idx]
+
+        # read the body of the message
+        while len(data_body) < int(content_length):
+            temp = self.wrapped_socket.recv(1000).decode('ascii')
+            data_body += temp
+
+        # check if we need to reset the connection
+        try:
+            data_head.index("Connection: keep-alive")
+        except:
+            self.reset_connection()
+
+        # return the header and body to the get method
+        return [data_head, data_body]
+
 
     # Sends a get request with a given URL
     def send_get_request(self, url):
 
-        # Reset connection
-        #self.reset_connection()
+        self.count+=1
         print(self.count)
 
         # Build get request
@@ -124,26 +154,11 @@ class Crawler:
 
         # Send request
         self.wrapped_socket.send(request.encode('ascii'))
-        #print('sent get request' + str(url))
 
         # Get response from server
-        data_head = ''
-        data_body = ''
-        content_length = 0
-        temp = 'temp'
-        
-        while (data_head[len(data_head)-4:] != '\r\n\r\n'):
-            temp = self.wrapped_socket.recv(1)
-            temp = temp.decode('ascii')
-            data_head += temp
-            
-        len_idx = data_head.index("Content-Length:")+16
-        len_end_idx = data_head.index('\r', len_idx)
-        content_length = data_head[len_idx:len_end_idx]
-
-        while len(data_body) < int(content_length):
-            temp = self.wrapped_socket.recv(1000).decode('ascii')
-            data_body += temp
+        resp = self.parse_keep_alive_response()
+        data_head = resp[0]
+        data_body = resp[1]
         
         # Get the status code, and set cookies if necessary
         status_code = self.get_status_code(data_head)
@@ -166,9 +181,6 @@ class Crawler:
     # Send a post request with a given URL
     def send_post_request(self, url):
 
-        # Reset the connection to the server
-        #self.reset_connection()
-
         # Build the post request
         body = 'username='+str(self.username)+'&password='+str(self.password)+'&csrfmiddlewaretoken='+str(self.csrf_token_body)+'&next=%2Ffakebook%2F'
 
@@ -181,7 +193,6 @@ class Crawler:
         post_request += '\r\n'
         post_request += body
 
-        #print('made it to post request')
         # Send the post request 
         self.wrapped_socket.send(post_request.encode('ascii'))
 
